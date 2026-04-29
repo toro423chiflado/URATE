@@ -1,0 +1,82 @@
+version: '3.9'
+
+# ================================================================
+# MS2 — ms-academic (Spring Boot + MySQL)
+#
+# Para conectar con MS1 real:
+#   - Opción A (MS1 en otra terminal de Docker):
+#     Cambia MS1_URL a http://utec_ms_users:3001
+#     y agrega la red externa: external: true
+#   - Opción B (MS1 en tu laptop fuera de Docker):
+#     Deja MS1_URL=http://host.docker.internal:3001 (default)
+# ================================================================
+
+networks:
+  academic_net:
+    driver: bridge
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: utec_academic_db
+    restart: unless-stopped
+    networks:
+      - academic_net
+    ports:
+      - "127.0.0.1:3306:3306"   # solo localhost, para DBeaver
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:-root_utec_2025}
+      MYSQL_DATABASE:      ${DB_NAME:-academic_db}
+      MYSQL_USER:          ${DB_USER:-utec_user}
+      MYSQL_PASSWORD:      ${DB_PASS:-utec_pass_2025}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d:ro
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u${DB_USER:-utec_user}", "-p${DB_PASS:-utec_pass_2025}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  ms-academic:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: utec_ms_academic
+    restart: unless-stopped
+    networks:
+      - academic_net
+    ports:
+      - "3002:3002"
+    environment:
+      DB_URL:   jdbc:mysql://mysql:3306/${DB_NAME:-academic_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+      DB_USER:  ${DB_USER:-utec_user}
+      DB_PASS:  ${DB_PASS:-utec_pass_2025}
+
+      # ── Conexión al MS1 ────────────────────────────────────────
+      # Si MS1 corre en Docker en tu laptop:
+      MS1_URL: ${MS1_URL:-http://host.docker.internal:3001}
+      # Si quieres probar sin MS1 (datos mock):
+      MS1_MOCK: ${MS1_MOCK:-false}
+
+      # ── JWT del MS1 — para verificar tokens en MS2 ────────────
+      # DEBE ser el mismo JWT_SECRET que usa el MS1
+      MS1_JWT_SECRET: ${MS1_JWT_SECRET:-utec_rate_secret_dev_2025}
+
+      SERVER_PORT: 3002
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE:-dev}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  mysql_data:
+    driver: local

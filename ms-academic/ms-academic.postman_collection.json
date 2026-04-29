@@ -1,0 +1,378 @@
+{
+  "info": {
+    "name": "UTEC Rate — MS2 Academic (sin MS1)",
+    "_postman_id": "ms2-standalone",
+    "description": "Prueba completa del MS2 ms-academic sin necesitar el MS1.\n\nBase URL: http://localhost:3002\nSwagger UI: http://localhost:3002/docs\n\nPara probar SIN MS1: activa MS1_MOCK=true en el .env\nPara probar CON MS1: usa el token del MS1 en la variable `token`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base", "value": "http://localhost:3002", "type": "string" },
+    { "key": "token", "value": "sin-token-necesario-para-endpoints-publicos", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "0️⃣  Sistema",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "url": "{{base}}/health"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('status ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Swagger UI (abrir en navegador)",
+          "request": { "method": "GET", "url": "{{base}}/docs" }
+        }
+      ]
+    },
+    {
+      "name": "1️⃣  Carreras",
+      "item": [
+        {
+          "name": "Listar todas las carreras",
+          "request": { "method": "GET", "url": "{{base}}/carreras" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Es array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('Tiene Cursos Generales primero', () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body[0].codigo).to.eql('CG');",
+              "});",
+              "pm.test('Tiene al menos 16 carreras', () => {",
+              "  pm.expect(pm.response.json().length).to.be.gte(16);",
+              "});"
+            ]}
+          }]
+        },
+        {
+          "name": "Obtener carrera ID=1 (Cursos Generales)",
+          "request": { "method": "GET", "url": "{{base}}/carreras/1" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Codigo CG', () => pm.expect(pm.response.json().codigo).to.eql('CG'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Obtener carrera inexistente → 404",
+          "request": { "method": "GET", "url": "{{base}}/carreras/9999" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 404', () => pm.response.to.have.status(404));"
+            ]}
+          }]
+        },
+        {
+          "name": "Crear carrera (sin token — valida que el endpoint existe)",
+          "request": {
+            "method": "POST",
+            "url": "{{base}}/carreras",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Ingeniería de Software\",\n  \"codigo\": \"ISW\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2️⃣  Cursos",
+      "item": [
+        {
+          "name": "Listar cursos paginados",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base}}/cursos?pagina=1&limite=10",
+              "host": ["{{base}}"],
+              "path": ["cursos"],
+              "query": [
+                { "key": "pagina", "value": "1" },
+                { "key": "limite", "value": "10" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const b = pm.response.json();",
+              "pm.test('Tiene campo data', () => pm.expect(b).to.have.property('data'));",
+              "pm.test('Tiene campo meta', () => pm.expect(b).to.have.property('meta'));",
+              "pm.test('meta.limite=10', () => pm.expect(b.meta.limite).to.eql(10));",
+              "pm.test('Hay cursos', () => pm.expect(b.data.length).to.be.gt(0));"
+            ]}
+          }]
+        },
+        {
+          "name": "Cursos de CG (Cursos Generales) — ID=1",
+          "request": { "method": "GET", "url": "{{base}}/carreras/1/cursos" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Tiene cursos generales', () => {",
+              "  const cursos = pm.response.json();",
+              "  pm.expect(cursos.length).to.be.gte(18);",
+              "});",
+              "pm.test('Calculos I existe', () => {",
+              "  const existe = pm.response.json().some(c => c.codigo === 'CG-MA101');",
+              "  pm.expect(existe).to.be.true;",
+              "});"
+            ]}
+          }]
+        },
+        {
+          "name": "Cursos de SI (Sistemas de Información) — ID=2",
+          "request": { "method": "GET", "url": "{{base}}/carreras/2/cursos" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Tiene cursos de SI', () => pm.expect(pm.response.json().length).to.be.gte(15));"
+            ]}
+          }]
+        },
+        {
+          "name": "Buscar cursos por nombre: 'calculo'",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base}}/cursos?q=calculo",
+              "host": ["{{base}}"],
+              "path": ["cursos"],
+              "query": [{ "key": "q", "value": "calculo" }]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Encuentra cursos de calculo', () => {",
+              "  pm.expect(pm.response.json().data.length).to.be.gte(3);",
+              "});"
+            ]}
+          }]
+        },
+        {
+          "name": "Buscar cursos por carrera: SI + nombre: 'datos'",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base}}/cursos?carreraId=2&q=datos",
+              "host": ["{{base}}"],
+              "path": ["cursos"],
+              "query": [
+                { "key": "carreraId", "value": "2" },
+                { "key": "q", "value": "datos" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener curso ID=1",
+          "request": { "method": "GET", "url": "{{base}}/cursos/1" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Tiene campos necesarios', () => {",
+              "  const c = pm.response.json();",
+              "  pm.expect(c).to.have.property('id');",
+              "  pm.expect(c).to.have.property('nombre');",
+              "  pm.expect(c).to.have.property('codigo');",
+              "  pm.expect(c).to.have.property('carreraId');",
+              "  pm.expect(c).to.have.property('colorHex');",
+              "});"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "3️⃣  Profesor-Curso (MOCK activado)",
+      "item": [
+        {
+          "name": "Verificar que PC ID=1 existe",
+          "request": { "method": "GET", "url": "{{base}}/profesor-curso/1/existe" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('existe=true', () => {",
+              "  pm.expect(pm.response.json().existe).to.be.true;",
+              "});"
+            ]}
+          }]
+        },
+        {
+          "name": "Verificar que PC ID=9999 NO existe",
+          "request": { "method": "GET", "url": "{{base}}/profesor-curso/9999/existe" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('existe=false', () => {",
+              "  pm.expect(pm.response.json().existe).to.be.false;",
+              "});"
+            ]}
+          }]
+        },
+        {
+          "name": "Profesores del curso CG-MA101 (Cálculo I) — con mock",
+          "request": {
+            "method": "GET",
+            "url": "{{base}}/cursos/1/profesores",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Devuelve lista', () => pm.expect(pm.response.json()).to.be.an('array'));",
+              "pm.test('Con mock: nombre del profesor no es vacío', () => {",
+              "  const lista = pm.response.json();",
+              "  if (lista.length > 0) {",
+              "    pm.expect(lista[0].profesorNombre).to.not.eql('');",
+              "  }",
+              "});"
+            ]}
+          }]
+        },
+        {
+          "name": "Obtener PC ID=1 (con mock del MS1)",
+          "request": {
+            "method": "GET",
+            "url": "{{base}}/profesor-curso/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const pc = pm.response.json();",
+              "pm.test('Tiene campos completos', () => {",
+              "  pm.expect(pc).to.have.property('id');",
+              "  pm.expect(pc).to.have.property('profesorId');",
+              "  pm.expect(pc).to.have.property('cursoNombre');",
+              "  pm.expect(pc).to.have.property('semestre');",
+              "});"
+            ]}
+          }]
+        },
+        {
+          "name": "Cursos del profesor UUID-001 (Juan Pérez)",
+          "request": {
+            "method": "GET",
+            "url": "{{base}}/profesores/00000000-0000-0000-0000-000000000001/cursos",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Juan Pérez tiene cursos', () => {",
+              "  pm.expect(pm.response.json().length).to.be.gte(3);",
+              "});"
+            ]}
+          }]
+        },
+        {
+          "name": "Asignar profesor a curso (mock valida automáticamente)",
+          "request": {
+            "method": "POST",
+            "url": "{{base}}/profesor-curso",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profesorId\": \"00000000-0000-0000-0000-000000000001\",\n  \"cursoId\": 5,\n  \"semestre\": \"2025-2\",\n  \"seccion\": \"A\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Creado 201 o conflicto 409', () => {",
+              "  pm.expect([201, 409]).to.include(pm.response.code);",
+              "});"
+            ]}
+          }]
+        }
+      ]
+    },
+    {
+      "name": "4️⃣  Validaciones y errores",
+      "item": [
+        {
+          "name": "Crear carrera sin nombre → 400",
+          "request": {
+            "method": "POST",
+            "url": "{{base}}/carreras",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{ \"codigo\": \"TEST\" }" }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "pm.test('Tiene campo error', () => pm.expect(pm.response.json()).to.have.property('campos'));"
+            ]}
+          }]
+        },
+        {
+          "name": "Crear curso con semestre inválido → 400",
+          "request": {
+            "method": "POST",
+            "url": "{{base}}/profesor-curso",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profesorId\": \"uuid-123\",\n  \"cursoId\": 1,\n  \"semestre\": \"2025-3\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 400 por semestre inválido', () => pm.response.to.have.status(400));"
+            ]}
+          }]
+        },
+        {
+          "name": "Ruta inexistente → 404",
+          "request": { "method": "GET", "url": "{{base}}/ruta-que-no-existe" },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Status 404', () => pm.response.to.have.status(404));"
+            ]}
+          }]
+        }
+      ]
+    }
+  ]
+}

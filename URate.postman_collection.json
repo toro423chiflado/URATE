@@ -1,0 +1,402 @@
+{
+  "info": {
+    "name": "UTEC Rate — MS1 + MS2",
+    "_postman_id": "utecrate-ms1-ms2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "ms1", "value": "http://localhost:3001" },
+    { "key": "ms2", "value": "http://localhost:3002" },
+    { "key": "token", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDAiLCJjb3JyZW8iOiJhZG1pbkB1dGVjLmVkdS5wZSIsInJvbCI6IkFETUlOIiwibm9tYnJlIjoiQWRtaW4iLCJhcGVsbGlkbyI6IlVURUMiLCJpYXQiOjE3NzcxNTY0OTQsImV4cCI6MTc3NzE4NTI5NH0.jy_wlKobr301-3XjRI6cAXHgyD5z4_Vsq0dFHxGHgX0" }
+  ],
+  "item": [
+    {
+      "name": "MS1 — Auth",
+      "item": [
+        {
+          "name": "Health MS1",
+          "request": {
+            "method": "GET",
+            "url": "{{ms1}}/health"
+          }
+        },
+        {
+          "name": "Login admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "if (r.accessToken) {",
+                  "  pm.collectionVariables.set('token', r.accessToken);",
+                  "  console.log('Token guardado automáticamente');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{ms1}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@utec.edu.pe\",\n  \"password\": \"admin123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login profesor Juan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "if (r.accessToken) pm.collectionVariables.set('token', r.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{ms1}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"juan.perez@utec.edu.pe\",\n  \"password\": \"profesor123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login estudiante",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const r = pm.response.json();",
+                  "if (r.accessToken) pm.collectionVariables.set('token', r.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{ms1}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"maria.garcia@utec.edu.pe\",\n  \"password\": \"estudiante123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Mi perfil (whoami)",
+          "request": {
+            "method": "GET",
+            "url": "{{ms1}}/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Listar todos los usuarios (ADMIN)",
+          "request": {
+            "method": "GET",
+            "url": "{{ms1}}/usuarios",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Ver usuario por ID",
+          "request": {
+            "method": "GET",
+            "url": "{{ms1}}/usuarios/00000000-0000-0000-0000-000000000001",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Crear usuario PROFESOR (ADMIN)",
+          "request": {
+            "method": "POST",
+            "url": "{{ms1}}/usuarios",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Carlos\",\n  \"apellido\": \"López\",\n  \"correo\": \"carlos.lopez@utec.edu.pe\",\n  \"password\": \"profesor123\",\n  \"rol\": \"PROFESOR\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MS2 — Carreras",
+      "item": [
+        {
+          "name": "Health MS2",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/health"
+          }
+        },
+        {
+          "name": "Listar todas las carreras",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/carreras"
+          }
+        },
+        {
+          "name": "Ver carrera por ID",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/carreras/1"
+          }
+        },
+        {
+          "name": "Ver carrera inexistente → 404",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/carreras/9999"
+          }
+        },
+        {
+          "name": "Crear carrera",
+          "request": {
+            "method": "POST",
+            "url": "{{ms2}}/carreras",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Ingeniería de Software\",\n  \"codigo\": \"ISW\",\n  \"activa\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Actualizar carrera",
+          "request": {
+            "method": "PUT",
+            "url": "{{ms2}}/carreras/1",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cursos Generales UTEC\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Desactivar carrera (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{ms2}}/carreras/17",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "MS2 — Cursos",
+      "item": [
+        {
+          "name": "Listar cursos paginados (página 1, 10 por página)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{ms2}}/cursos?pagina=1&limite=10",
+              "host": ["{{ms2}}"],
+              "path": ["cursos"],
+              "query": [
+                { "key": "pagina", "value": "1" },
+                { "key": "limite", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar cursos por nombre",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{ms2}}/cursos?q=calculo&pagina=1&limite=5",
+              "host": ["{{ms2}}"],
+              "path": ["cursos"],
+              "query": [
+                { "key": "q", "value": "calculo" },
+                { "key": "pagina", "value": "1" },
+                { "key": "limite", "value": "5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cursos de una carrera específica (ID=1)",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/carreras/1/cursos"
+          }
+        },
+        {
+          "name": "Filtrar cursos por carrera + nombre",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{ms2}}/cursos?carreraId=2&q=datos&pagina=1&limite=10",
+              "host": ["{{ms2}}"],
+              "path": ["cursos"],
+              "query": [
+                { "key": "carreraId", "value": "2" },
+                { "key": "q", "value": "datos" },
+                { "key": "pagina", "value": "1" },
+                { "key": "limite", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ver curso por ID",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/cursos/1"
+          }
+        },
+        {
+          "name": "Crear curso",
+          "request": {
+            "method": "POST",
+            "url": "{{ms2}}/cursos",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"carreraId\": 1,\n  \"nombre\": \"Inteligencia Artificial\",\n  \"codigo\": \"CG-IA301\",\n  \"colorHex\": \"#8B5CF6\",\n  \"creditos\": 4\n}"
+            }
+          }
+        },
+        {
+          "name": "Actualizar curso",
+          "request": {
+            "method": "PUT",
+            "url": "{{ms2}}/cursos/1",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"colorHex\": \"#EF4444\",\n  \"creditos\": 5\n}"
+            }
+          }
+        },
+        {
+          "name": "Desactivar curso",
+          "request": {
+            "method": "DELETE",
+            "url": "{{ms2}}/cursos/999",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "MS2 — Profesor-Curso (integración con MS1)",
+      "item": [
+        {
+          "name": "Profesores del curso 1 (enriquecido con MS1)",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/cursos/1/profesores",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Cursos del profesor Juan (UUID fijo)",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/profesores/00000000-0000-0000-0000-000000000001/cursos",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Cursos del profesor Ana",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/profesores/00000000-0000-0000-0000-000000000002/cursos",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Ver asignación por ID",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/profesor-curso/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "¿Existe asignación ID=1?",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/profesor-curso/1/existe"
+          }
+        },
+        {
+          "name": "¿Existe asignación ID=9999? → false",
+          "request": {
+            "method": "GET",
+            "url": "{{ms2}}/profesor-curso/9999/existe"
+          }
+        },
+        {
+          "name": "Asignar profesor a curso (valida en MS1)",
+          "request": {
+            "method": "POST",
+            "url": "{{ms2}}/profesor-curso",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profesorId\": \"00000000-0000-0000-0000-000000000001\",\n  \"cursoId\": 5,\n  \"semestre\": \"2025-2\",\n  \"seccion\": \"B\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Asignar con semestre inválido → 400",
+          "request": {
+            "method": "POST",
+            "url": "{{ms2}}/profesor-curso",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profesorId\": \"00000000-0000-0000-0000-000000000001\",\n  \"cursoId\": 1,\n  \"semestre\": \"2025-3\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Desactivar asignación",
+          "request": {
+            "method": "DELETE",
+            "url": "{{ms2}}/profesor-curso/1",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    }
+  ]
+}

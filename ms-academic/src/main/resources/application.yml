@@ -1,0 +1,78 @@
+server:
+  port: ${SERVER_PORT:3002}
+
+spring:
+  application:
+    name: ms-academic
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/academic_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8}
+    username: ${DB_USER:utec_user}
+    password: ${DB_PASS:utec_pass_2025}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      pool-name: AcademicHikariPool
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+        default_batch_fetch_size: 100
+
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data.sql
+      # Continua aunque ya existan datos (INSERT IGNORE los maneja)
+      continue-on-error: true
+
+# URL del MS1
+ms1:
+  url: ${MS1_URL:http://localhost:3001}
+  # Si es true, no llama a MS1 y devuelve datos mock de profesores
+  # Útil para probar el MS2 solo sin necesitar el MS1 corriendo
+  mock-enabled: ${MS1_MOCK:false}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /docs
+    operationsSorter: method
+    tagsSorter: alpha
+    display-request-duration: true
+    try-it-out-enabled: true
+
+logging:
+  level:
+    pe.utec.academic: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+
+---
+# Perfil dev: más logs, mock del MS1 desactivado
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: false
+
+---
+# Perfil prod: sin mock, logs mínimos
+spring:
+  config:
+    activate:
+      on-profile: prod
+ms1:
+  mock-enabled: false
+logging:
+  level:
+    pe.utec.academic: WARN

@@ -1,0 +1,118 @@
+version: '3.9'
+
+# ================================================================
+# UTEC Rate — MS1 (Auth) + MS2 (Academic) juntos
+#
+# Levantar todo:
+#   docker compose up -d --build
+#
+# Parar todo:
+#   docker compose down
+#
+# Parar y borrar datos:
+#   docker compose down -v
+# ================================================================
+
+networks:
+  utec_net:
+    driver: bridge
+
+services:
+
+  # ── PostgreSQL (MS1) ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: utec_auth_db
+    restart: unless-stopped
+    networks:
+      - utec_net
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB:       auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── MySQL (MS2) ──────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: utec_academic_db
+    restart: unless-stopped
+    networks:
+      - utec_net
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE:      academic_db
+      MYSQL_USER:          utec_user
+      MYSQL_PASSWORD:      utec_pass_2025
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./ms-academic/mysql-init:/docker-entrypoint-initdb.d:ro
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uutec_user", "-putec_pass_2025"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  # ── MS1 — ms-users (Node.js) ─────────────────────────────────
+  ms-users:
+    build:
+      context: ./ms-users
+      dockerfile: Dockerfile
+    container_name: utec_ms_users
+    restart: unless-stopped
+    networks:
+      - utec_net
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL:       postgresql://postgres:postgres@postgres:5432/auth_db
+      JWT_SECRET:         utec_rate_secret_dev_2025
+      JWT_REFRESH_SECRET: utec_rate_refresh_dev_2025
+      PORT:               3001
+      NODE_ENV:           development
+      CORS_ORIGIN:        "*"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── MS2 — ms-academic (Spring Boot) ─────────────────────────
+  ms-academic:
+    build:
+      context: ./ms-academic
+      dockerfile: Dockerfile
+    container_name: utec_ms_academic
+    restart: unless-stopped
+    networks:
+      - utec_net
+    ports:
+      - "3002:3002"
+    environment:
+      DB_URL:   jdbc:mysql://mysql:3306/academic_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+      DB_USER:  utec_user
+      DB_PASS:  utec_pass_2025
+      # MS1 se llama por nombre de servicio Docker (dentro de la misma red)
+      MS1_URL:  http://ms-users:3001
+      MS1_MOCK: "false"
+      SERVER_PORT: 3002
+      SPRING_PROFILES_ACTIVE: dev
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  mysql_data:
