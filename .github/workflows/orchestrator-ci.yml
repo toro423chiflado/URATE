@@ -1,0 +1,42 @@
+name: Orchestrator CI
+
+on:
+  push:
+    branches: [ "main", "orquestador" ]
+  pull_request:
+    branches: [ "main", "orquestador" ]
+    paths:
+      - 'orchestrator/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./orchestrator
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: ./orchestrator/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run lint (if configured)
+      run: npm run lint --if-present
+
+    - name: Run Unit Tests
+      run: npm test
+
+    - name: Run NPM Audit (Security scan)
+      run: npm audit --audit-level=high
