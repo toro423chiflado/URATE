@@ -1,3 +1,4 @@
+process.env.MS1_JWKS_URL = 'http://localhost:3001/.well-known/jwks.json';
 const { validateJwt } = require('../src/lib/validateJwt');
 const crypto = require('crypto');
 const jose = require('jose');
