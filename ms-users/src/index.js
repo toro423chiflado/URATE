@@ -42,6 +42,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ── JWKS Public Endpoint ─────────────────────────────────────────
+app.get('/.well-known/jwks.json', (req, res) => {
+  try {
+    const jwks = require('../keys/jwks.json');
+    res.json(jwks);
+  } catch (e) {
+    res.status(500).json({ error: 'JWKS not available' });
+  }
+});
+
 // ── Rutas ────────────────────────────────────────────────────────
 app.use('/auth',     authRoutes);
 app.use('/usuarios', usuariosRoutes);

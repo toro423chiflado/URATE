@@ -1,0 +1,20 @@
+version: '3.9'
+
+services:
+  orchestrator:
+    build: .
+    container_name: utec_orchestrator
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - MS1_JWKS_URL=http://ms-users-mock:3001/.well-known/jwks.json
+      - MS1_ISSUER=http://ms-users-mock:3001
+      - MS2_BASE_URL=http://ms-academic-mock:3002
+      - ORCHESTRATOR_AUDIENCE=orchestrator
+      - TOKEN_EXCHANGE_ENDPOINT=http://ms-users-mock:3001/oauth/token-exchange
+      - CLIENT_ID_ORCHESTRATOR=orchestrator_client
+      - CLIENT_SECRET_ORCHESTRATOR=orchestrator_secret
+    # depends_on:
+    #   - ms-users-mock
+    #   - ms-academic-mock

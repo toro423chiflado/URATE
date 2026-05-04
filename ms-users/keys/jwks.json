@@ -1,0 +1,12 @@
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "n": "o0xYnAv7v7QoQdNQOyCLup80e_pkTBTADbA9Dkewf01r7ULvcHGd2URoEpbO6skhTje7EzRwEHpzt7EDp3mRlabTmVMuoWqdRq1ibVY-wz4kkVYUAY84NGzOKYQ-19fd_pvt62NQghgZ38KWma2MjeLoXfi5PEukNq3t8R4udv6UwNCy4QQwLOjHyKbRkIn4EYn8D0k3IDeARD-VUJq07-yRHNvoae280Q5QJ1dFxsryUqGXmeipkW87aDOKZkQtrYMsIGJXKiyIBzpZijB2r-YRiCuaHykZm2NKyBhWnsBIehjGf0XocV26xmFeVALvI2mdWk_gyNI9LfPsgkxOmw",
+      "e": "AQAB",
+      "kid": "utec-rate-key-1",
+      "use": "sig",
+      "alg": "RS256"
+    }
+  ]
+}

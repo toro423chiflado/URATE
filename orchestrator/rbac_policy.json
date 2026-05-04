@@ -1,0 +1,13 @@
+{
+  "actions": {
+    "create_class": ["PROFESOR", "ADMIN"],
+    "update_class": ["PROFESOR", "ADMIN"],
+    "delete_class": ["ADMIN"],
+    "register_student": ["ADMIN"],
+    "view_grades": ["ALUMNO", "PROFESOR", "ADMIN"]
+  },
+  "read_actions": [
+    "view_grades",
+    "list_classes"
+  ]
+}
