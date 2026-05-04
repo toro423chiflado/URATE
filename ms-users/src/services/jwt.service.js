@@ -1,12 +1,21 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const prisma = require('../config/db');
+
+const PRIVATE_KEY = fs.readFileSync(path.join(__dirname, '../../keys/private.pem'), 'utf8');
+const PUBLIC_KEY = fs.readFileSync(path.join(__dirname, '../../keys/jwks.json'), 'utf8'); // Not directly usable by jsonwebtoken easily
+const PUB_PEM = crypto.createPublicKey(PRIVATE_KEY).export({ type: 'spki', format: 'pem' });
 
 const ACCESS_SECRET  = process.env.JWT_SECRET;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const ACCESS_EXPIRY  = '8h';
 const REFRESH_EXPIRY = '7d';
 const REFRESH_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+
+const ISSUER = process.env.JWT_ISSUER || 'http://localhost:3001';
+const AUDIENCE = process.env.JWT_AUDIENCE || 'orchestrator';
 
 /**
  * Genera access token (8h) y refresh token (7d)
@@ -20,7 +29,13 @@ async function generarTokens(usuario) {
     apellido: usuario.apellido,
   };
 
-  const accessToken = jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRY });
+  const accessToken = jwt.sign(payload, PRIVATE_KEY, { 
+    algorithm: 'RS256', 
+    expiresIn: ACCESS_EXPIRY,
+    keyid: 'utec-rate-key-1',
+    issuer: ISSUER,
+    audience: AUDIENCE
+  });
 
   const rawRefresh  = crypto.randomBytes(64).toString('hex');
   const expiresAt   = new Date(Date.now() + REFRESH_EXPIRY_MS);
@@ -72,7 +87,11 @@ async function revocarTodos(usuarioId) {
  * Verifica un access token y devuelve el payload
  */
 function verificarAccessToken(token) {
-  return jwt.verify(token, ACCESS_SECRET);
+  return jwt.verify(token, PUB_PEM, { 
+    algorithms: ['RS256'],
+    issuer: ISSUER,
+    audience: AUDIENCE
+  });
 }
 
 module.exports = { generarTokens, rotarRefreshToken, revocarTodos, verificarAccessToken };

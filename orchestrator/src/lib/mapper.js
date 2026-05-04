@@ -1,9 +1,9 @@
 const ACTION_MAP = {
-  'create_class': { path: '/classes', method: 'POST', requiresExchange: true },
-  'update_class': { path: '/classes', method: 'PUT', requiresExchange: true },
-  'delete_class': { path: '/classes', method: 'DELETE', requiresExchange: true },
-  'view_grades': { path: '/grades', method: 'GET', requiresExchange: false },
-  'list_classes': { path: '/classes', method: 'GET', requiresExchange: false }
+  'create_class': { path: '/cursos', method: 'POST', requiresExchange: false },
+  'update_class': { path: '/cursos', method: 'PUT', requiresExchange: false },
+  'delete_class': { path: '/cursos', method: 'DELETE', requiresExchange: false },
+  'view_grades':  { path: '/grades', method: 'GET', requiresExchange: false },
+  'list_classes': { path: '/cursos', method: 'GET', requiresExchange: false }
 };
 
 function mapActionToPath(action) {

@@ -24,16 +24,18 @@ if (JWKS_URL) {
  * Falls back to local dev-key-1 if testing locally without remote JWKS.
  */
 async function validateJwt(token) {
-  let keyToUse = jwks;
-
-  // Fallback for local mocks/testing if jwks.json is present locally
-  if (!keyToUse && fs.existsSync('./jwks.json')) {
-    const localJwks = JSON.parse(fs.readFileSync('./jwks.json'));
-    keyToUse = await importJWK(localJwks.keys[0], 'RS256');
+  if (!jwks && JWKS_URL) {
+    try {
+      jwks = createRemoteJWKSet(new URL(JWKS_URL), {
+        cacheMaxAge: parseInt(process.env.JWKS_CACHE_TTL || '3600000', 10)
+      });
+    } catch(e) {
+      console.error('Failed to create remote JWKS set:', e.message);
+    }
   }
 
-  if (!keyToUse) {
-    throw new Error('No valid JWKS available');
+  if (!jwks) {
+    throw new Error('No valid JWKS available at ' + JWKS_URL);
   }
 
   const options = {};
@@ -41,7 +43,7 @@ async function validateJwt(token) {
   if (AUDIENCE) options.audience = AUDIENCE;
 
   try {
-    const { payload } = await jwtVerify(token, keyToUse, options);
+    const { payload } = await jwtVerify(token, jwks, options);
     return payload;
   } catch (error) {
     throw new Error('JWT Validation Failed: ' + error.message);

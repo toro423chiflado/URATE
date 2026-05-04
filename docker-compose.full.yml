@@ -1,0 +1,92 @@
+version: '3.9'
+
+services:
+  # ── Base de datos PostgreSQL para MS1 ──
+  postgres:
+    image: postgres:16-alpine
+    container_name: utec_auth_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Base de datos MySQL para MS2 ──
+  mysql:
+    image: mysql:8.0
+    container_name: utec_academic_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_utec_2025
+      MYSQL_DATABASE: academic_db
+      MYSQL_USER: utec_user
+      MYSQL_PASSWORD: utec_pass_2025
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  # ── MS1 ms-users ──
+  ms-users:
+    build: ./ms-users
+    container_name: utec_ms_users
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/auth_db
+      JWT_SECRET: utec_rate_secret_dev_2025
+      JWT_REFRESH_SECRET: utec_rate_refresh_dev_2025
+      PORT: 3001
+      NODE_ENV: development
+      CORS_ORIGIN: "*"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Orquestador ──
+  orchestrator:
+    build: ./orchestrator
+    container_name: utec_orchestrator
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      # Apuntamos a ms-users para JWKS real o mock
+      # MS1_JWKS_URL: http://ms-users:3001/.well-known/jwks.json
+      # Como MS1 aún usa HS256, el orquestador usará fallback local o mock, 
+      # pero para la simulación dejaremos la config básica y usaremos clave estática o deshabilitaremos chequeo estricto
+      MS1_ISSUER: ""
+      MS2_BASE_URL: http://ms-academic:3002
+      ORCHESTRATOR_AUDIENCE: orchestrator
+    depends_on:
+      - ms-users
+
+  # ── MS2 ms-academic ──
+  ms-academic:
+    build: ./ms-academic
+    container_name: utec_ms_academic
+    ports:
+      - "3002:3002"
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/academic_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+      DB_USER: utec_user
+      DB_PASS: utec_pass_2025
+      MS1_URL: http://ms-users:3001
+      # Desactivamos el mock de MS1 para integrarlo real si se requiere, o lo dejamos mockeado si falla Google Auth
+      MS1_MOCK: "false"
+    depends_on:
+      - mysql
+
+volumes:
+  postgres_data:
+  mysql_data:

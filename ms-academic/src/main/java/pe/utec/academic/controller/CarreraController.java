@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import pe.utec.academic.dto.CarreraDto;
 import pe.utec.academic.service.CarreraService;
 import java.util.List;
@@ -31,6 +32,7 @@ public class CarreraController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Crear carrera (solo ADMIN)")
     public ResponseEntity<CarreraDto.Response> crear(
             @Valid @RequestBody CarreraDto.Request req) {
@@ -39,6 +41,7 @@ public class CarreraController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Actualizar carrera (solo ADMIN)")
     public ResponseEntity<CarreraDto.Response> actualizar(
             @PathVariable Integer id,
@@ -47,6 +50,7 @@ public class CarreraController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Desactivar carrera (soft delete, solo ADMIN)")
     public ResponseEntity<Void> desactivar(@PathVariable Integer id) {
         carreraService.desactivar(id);
