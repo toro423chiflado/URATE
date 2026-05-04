@@ -2,6 +2,9 @@ const { validateJwt } = require('../src/lib/validateJwt');
 const crypto = require('crypto');
 const jose = require('jose');
 const fs = require('fs');
+const nock = require('nock');
+
+const MS1_URL = 'http://localhost:3001';
 
 describe('Validate JWT Module', () => {
   let privateKey;
@@ -9,24 +12,35 @@ describe('Validate JWT Module', () => {
   let validToken;
 
   beforeAll(async () => {
-    if (fs.existsSync('./dev-private.pem')) {
-      const pkcs8 = fs.readFileSync('./dev-private.pem', 'utf8');
-      privateKey = await jose.importPKCS8(pkcs8, 'RS256');
+    // Generate a fresh key for the test to be independent
+    const { publicKey: testPub, privateKey: testPriv } = await jose.generateKeyPair('RS256');
+    privateKey = testPriv;
+    const jwk = await jose.exportJWK(testPub);
+    jwk.kid = 'dev-key-1';
+    jwk.alg = 'RS256';
+    jwk.use = 'sig';
 
-      validToken = await new jose.SignJWT({ sub: '123', roles: ['PROFESOR'] })
-        .setProtectedHeader({ alg: 'RS256', kid: 'dev-key-1' })
-        .setIssuedAt()
-        .setIssuer('http://localhost:3001')
-        .setAudience('orchestrator')
-        .setExpirationTime('2h')
-        .sign(privateKey);
+    // Mock the JWKS endpoint
+    nock(MS1_URL)
+      .persist()
+      .get('/.well-known/jwks.json')
+      .reply(200, { keys: [jwk] });
 
-      expiredToken = await new jose.SignJWT({ sub: '123' })
-        .setProtectedHeader({ alg: 'RS256', kid: 'dev-key-1' })
-        .setIssuedAt()
-        .setExpirationTime('-1h') // expired
-        .sign(privateKey);
-    }
+    validToken = await new jose.SignJWT({ sub: '123', roles: ['PROFESOR'] })
+      .setProtectedHeader({ alg: 'RS256', kid: 'dev-key-1' })
+      .setIssuedAt()
+      .setIssuer('http://localhost:3001')
+      .setAudience('orchestrator')
+      .setExpirationTime('2h')
+      .sign(privateKey);
+
+    expiredToken = await new jose.SignJWT({ sub: '123' })
+      .setProtectedHeader({ alg: 'RS256', kid: 'dev-key-1' })
+      .setIssuedAt()
+      .setIssuer('http://localhost:3001')
+      .setAudience('orchestrator')
+      .setExpirationTime('-1h')
+      .sign(privateKey);
   });
 
   it('should validate a valid token', async () => {
