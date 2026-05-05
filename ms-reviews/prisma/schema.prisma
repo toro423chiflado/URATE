@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EstadoModeracion {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+  FLAGGED
+}
+
+model Resena {
+  id              String           @id @default(uuid())
+
+  // Referencias cruzadas sin FK real (microservicios)
+  autorId         String           @map("autor_id")          // → ms-users.usuarios.id
+  profesorCursoId Int              @map("profesor_curso_id") // → ms-academic.profesor_curso.id
+  cursoId         Int              @map("curso_id")          // → ms-academic.curso.id (denorm para analytics)
+  profesorId      String           @map("profesor_id")       // → ms-users.usuarios.id (denorm para analytics)
+
+  calificacion    Int
+  comentario      String?          @db.Text
+
+  estado          EstadoModeracion @default(PENDIENTE)
+  moderadoPor     String?          @map("moderado_por")      // "auto" | "admin" | uuid del admin
+  moderadoAt      DateTime?        @map("moderado_at")       @db.Timestamptz()
+
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime         @updatedAt      @map("updated_at") @db.Timestamptz()
+
+  @@unique([autorId, profesorCursoId])
+  @@index([cursoId])
+  @@index([profesorId])
+  @@index([estado])
+  @@map("resenas")
+}

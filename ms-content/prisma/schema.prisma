@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoMaterial {
+  PDF
+  VIDEO
+  PADLET
+  LINK
+}
+
+model Material {
+  id              String       @id @default(uuid())
+
+  // Referencias cruzadas sin FK real (microservicios)
+  profesorCursoId Int          @map("profesor_curso_id") // → ms-academic.profesor_curso.id
+  cursoId         Int          @map("curso_id")          // → ms-academic.curso.id (denorm para analytics)
+  creadoPor       String       @map("creado_por")        // → ms-users.usuarios.id
+
+  titulo          String       @db.VarChar(200)
+  tipo            TipoMaterial
+  url             String       @db.Text
+  descripcion     String?      @db.Text
+  publicado       Boolean      @default(false)
+
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime     @updatedAt      @map("updated_at") @db.Timestamptz()
+
+  @@index([cursoId])
+  @@index([profesorCursoId])
+  @@map("materiales")
+}
+
+model Inscripcion {
+  id           String   @id @default(uuid())
+
+  // Referencias cruzadas sin FK real (microservicios)
+  estudianteId String   @map("estudiante_id") // → ms-users.usuarios.id
+  cursoId      Int      @map("curso_id")       // → ms-academic.curso.id
+
+  inscritoAt   DateTime @default(now()) @map("inscrito_at") @db.Timestamptz()
+  activo       Boolean  @default(true)
+
+  @@unique([estudianteId, cursoId])
+  @@index([cursoId])
+  @@map("inscripciones")
+}
