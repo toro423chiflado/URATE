@@ -1,0 +1,4 @@
+boto3==1.37.38
+pandas==2.2.3
+SQLAlchemy==2.0.40
+psycopg2-binary==2.9.10

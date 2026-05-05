@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  ingest-users:
+    build: ./containers/ingest-users
+    image: urate/ingest-users:latest
+    env_file:
+      - ./containers/ingest-users/.env
+
+  ingest-content:
+    build: ./containers/ingest-content
+    image: urate/ingest-content:latest
+    env_file:
+      - ./containers/ingest-content/.env
+
+  ingest-reviews:
+    build: ./containers/ingest-reviews
+    image: urate/ingest-reviews:latest
+    env_file:
+      - ./containers/ingest-reviews/.env
