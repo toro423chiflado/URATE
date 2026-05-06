@@ -34,6 +34,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -111,6 +112,50 @@ services:
       SPRING_PROFILES_ACTIVE: dev
     depends_on:
       mysql:
+        condition: service_healthy
+
+  # ── MS3 — ms-reviews (Node.js) ──────────────────────────────
+  ms-reviews:
+    build:
+      context: ./ms-reviews
+      dockerfile: Dockerfile
+    container_name: utec_ms_reviews
+    restart: unless-stopped
+    networks:
+      - utec_net
+    ports:
+      - "3003:3003"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/reviews_db
+      PORT:         3003
+      NODE_ENV:     development
+      CORS_ORIGIN:  "*"
+      MS1_JWKS_URL: http://ms-users:3001/.well-known/jwks.json
+      MS1_ISSUER:   http://ms-users:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── MS4 — ms-content (Node.js) ───────────────────────────────
+  ms-content:
+    build:
+      context: ./ms-content
+      dockerfile: Dockerfile
+    container_name: utec_ms_content
+    restart: unless-stopped
+    networks:
+      - utec_net
+    ports:
+      - "3004:3004"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/content_db
+      PORT:         3004
+      NODE_ENV:     development
+      CORS_ORIGIN:  "*"
+      MS1_JWKS_URL: http://ms-users:3001/.well-known/jwks.json
+      MS1_ISSUER:   http://ms-users:3001
+    depends_on:
+      postgres:
         condition: service_healthy
 
 volumes:
