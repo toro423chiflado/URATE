@@ -1,21 +1,27 @@
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-import httpx, os
-from motor.motor_asyncio import AsyncIOMotorClient
-from src.routes import calificaciones, health
 from src.database import connect_db, close_db
+from src.routes import calificaciones, health, repositorios
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_db()
+    print("🚀 MS3 ms-reviews iniciado — MongoDB")
     yield
     await close_db()
 
 app = FastAPI(
-    title="MS3 — Reviews",
-    description="Calificaciones de profesores por curso. Usa MongoDB.",
-    version="1.0.0",
+    title="MS3 — Reviews & Repositories",
+    description="""
+Microservicio de Reseñas y Repositorios. Usa MongoDB.
+
+**Funcionalidades:**
+- Estudiantes crean/editan reseñas de profesores
+- Admin elimina reseñas
+- Profesores y estudiantes suben contenido a repositorios de cursos
+""",
+    version="2.0.0",
     docs_url="/docs",
     lifespan=lifespan
 )
@@ -29,3 +35,4 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(calificaciones.router, prefix="/calificaciones")
+app.include_router(repositorios.router, prefix="/repositorios")

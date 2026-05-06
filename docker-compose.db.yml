@@ -1,0 +1,74 @@
+# ================================================================
+# URATE — docker-compose.db.yml (MV3: solo bases de datos)
+# Ejecutar SOLO en la MV de bases de datos
+# ================================================================
+name: urate-db
+
+networks:
+  utec_db_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mysql_data:
+  mongo_data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: utec_auth_db
+    restart: unless-stopped
+    networks: [utec_db_net]
+    ports: ["5432:5432"]          # solo acceso interno/VPC
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secure_2025}
+      POSTGRES_DB:       auth_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mysql:
+    image: mysql:8.0
+    container_name: utec_academic_db
+    restart: unless-stopped
+    networks: [utec_db_net]
+    ports: ["3306:3306"]          # solo acceso interno/VPC
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_utec_2025}
+      MYSQL_DATABASE:      academic_db
+      MYSQL_USER:          ${MYSQL_USER:-utec_user}
+      MYSQL_PASSWORD:      ${MYSQL_PASSWORD:-utec_pass_2025}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./ms-academic/mysql-init:/docker-entrypoint-initdb.d:ro
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uutec_user", "-putec_pass_2025"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  mongo:
+    image: mongo:7
+    container_name: utec_reviews_db
+    restart: unless-stopped
+    networks: [utec_db_net]
+    ports: ["27017:27017"]        # solo acceso interno/VPC
+    environment:
+      MONGO_INITDB_DATABASE: reviews_db
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s

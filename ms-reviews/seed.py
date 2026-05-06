@@ -1,87 +1,95 @@
 """
-Seed de MongoDB para ms-reviews
-Genera 25,000+ calificaciones fake
-Correr: python seed.py
+Seed script: inserta 20,000+ calificaciones y archivos de repositorio ficticios en MongoDB.
+Ejecutar: python seed.py
 """
-import asyncio
-import random
+import asyncio, random, os
 from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorClient
-import os
 
 MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
 MONGO_DB  = os.getenv("MONGO_DB",  "reviews_db")
 
-# UUIDs de profesores del seed del MS1
-PROFESORES = [
-    "00000000-0000-0000-0000-000000000001",
-    "00000000-0000-0000-0000-000000000002",
-    "00000000-0000-0000-0000-000000000003",
+COMENTARIOS = [
+    "Excelente profesor, explica muy claro.",
+    "Buen dominio del tema.",
+    "Las clases son dinámicas y prácticas.",
+    "Podría mejorar el feedback.",
+    "Muy exigente pero justo.",
+    "Recomienda recursos útiles.",
+    "Clases un poco aburridas.",
+    "Muy puntual y organizado.",
+    "Se nota que domina el tema.",
+    "Buena predisposición para resolver dudas.",
 ]
 
-COMENTARIOS = [
-    "Excelente profesor, explica muy bien.",
-    "Muy buen manejo del curso.",
-    "Las clases son dinámicas y entretenidas.",
-    "Podría mejorar la atención a los alumnos.",
-    "Las evaluaciones son justas.",
-    "Demasiada teoría, poca práctica.",
-    "Muy exigente pero se aprende mucho.",
-    "El profesor llega tarde frecuentemente.",
-    "Muy buen dominio del tema.",
-    "Las diapositivas son confusas.",
-    "Responde bien las dudas en clase.",
-    "Muy buen profesor, lo recomiendo.",
-    None, None, None  # algunos sin comentario
+NOMBRES_ARCHIVOS = [
+    "Semana1_Intro.pdf", "Practica1.docx", "Semana2_Teoria.pdf",
+    "Lab1_Guia.pdf", "Ejercicios.xlsx", "Diagrama_ER.png",
+    "Proyecto_Final.pdf", "Notas_Clase.pdf", "Recurso_Extra.pdf",
+    "Evaluacion1.docx",
 ]
 
 async def seed():
     client = AsyncIOMotorClient(MONGO_URL)
     db = client[MONGO_DB]
-    
-    print("🧹 Limpiando colección calificaciones...")
-    await db.calificaciones.drop()
-    
-    print("🌱 Generando 25,000 calificaciones...")
-    
-    # IDs de profesor_curso en MS2 (los del data.sql)
-    pc_ids = list(range(1, 18))
-    
-    batch = []
-    TOTAL = 25000
-    
-    for i in range(TOTAL):
-        profesor_id = random.choice(PROFESORES)
-        pc_id       = random.choice(pc_ids)
-        puntaje     = random.choice([1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0])
-        anonimo     = random.random() > 0.3
-        
-        doc = {
-            "profesor_curso_id":  pc_id,
-            "profesor_id_cache":  profesor_id,
-            "estudiante_id":      None if anonimo else f"estudiante-fake-{i % 5000}",
-            "puntaje":            puntaje,
-            "comentario":         random.choice(COMENTARIOS),
-            "anonimo":            anonimo,
-            "creado_en":          datetime.utcnow() - timedelta(days=random.randint(0, 365))
-        }
-        batch.append(doc)
-        
-        if len(batch) == 500:
+
+    # Calificaciones
+    if await db.calificaciones.count_documents({}) < 1000:
+        print("🌱 Insertando 20,000 calificaciones...")
+        batch = []
+        for i in range(20000):
+            pc_id = random.randint(1, 100)
+            batch.append({
+                "profesor_curso_id": pc_id,
+                "estudiante_id": f"student-{random.randint(1, 500):04d}",
+                "puntaje": round(random.uniform(1, 5) * 2) / 2,
+                "comentario": random.choice(COMENTARIOS) if random.random() > 0.3 else None,
+                "anonimo": random.random() > 0.5,
+                "profesor_id_cache": f"prof-{random.randint(1, 30):03d}",
+                "creado_en": datetime.utcnow() - timedelta(days=random.randint(0, 365)),
+                "actualizado_en": None,
+            })
+            if len(batch) == 1000:
+                await db.calificaciones.insert_many(batch)
+                batch = []
+                print(f"  ...{i+1}/20000")
+        if batch:
             await db.calificaciones.insert_many(batch)
-            batch = []
-            print(f"   {i+1}/{TOTAL}...")
-    
-    if batch:
-        await db.calificaciones.insert_many(batch)
-    
-    # Índices para queries rápidas
-    await db.calificaciones.create_index("profesor_curso_id")
-    await db.calificaciones.create_index("profesor_id_cache")
-    await db.calificaciones.create_index("estudiante_id")
-    
-    total = await db.calificaciones.count_documents({})
-    print(f"\n✅ Seed completado — {total} calificaciones en MongoDB")
+        print("✅ Calificaciones insertadas")
+    else:
+        print("⏭  Calificaciones ya existen")
+
+    # Repositorios
+    if await db.repositorios.count_documents({}) < 1000:
+        print("🌱 Insertando 5,000 archivos de repositorio...")
+        tipos = ["documento", "imagen", "video", "otro"]
+        roles = ["PROFESOR", "ESTUDIANTE"]
+        batch = []
+        for i in range(5000):
+            batch.append({
+                "nombre": random.choice(NOMBRES_ARCHIVOS),
+                "url": f"https://storage.example.com/curso-{random.randint(1,50)}/{i}.pdf",
+                "tipo": random.choice(tipos),
+                "descripcion": f"Material de clase semana {random.randint(1,16)}",
+                "curso_id": random.randint(1, 50),
+                "profesor_curso_id": random.randint(1, 100) if random.random() > 0.4 else None,
+                "subido_por": f"user-{random.randint(1, 300):04d}",
+                "rol_subidor": random.choice(roles),
+                "creado_en": datetime.utcnow() - timedelta(days=random.randint(0, 180)),
+            })
+            if len(batch) == 500:
+                await db.repositorios.insert_many(batch)
+                batch = []
+        if batch:
+            await db.repositorios.insert_many(batch)
+        print("✅ Repositorios insertados")
+    else:
+        print("⏭  Repositorios ya existen")
+
+    await db.calificaciones.create_index([("profesor_curso_id", 1)])
+    await db.calificaciones.create_index([("estudiante_id", 1)])
+    await db.repositorios.create_index([("curso_id", 1)])
+    print("✅ Índices creados")
     client.close()
 
 if __name__ == "__main__":
