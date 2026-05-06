@@ -1,7 +1,3 @@
-# ================================================================
-# URATE — docker-compose.yml (MV1 + MV2: microservicios)
-# Bases de datos en MV3 (IPs en variables de entorno)
-# ================================================================
 name: urate
 
 networks:
@@ -9,7 +5,7 @@ networks:
     driver: bridge
 
 services:
-  # ── MICROSERVICIO 1: Users (Node.js + PostgreSQL en MV3) ─────
+  # ── MICROSERVICIO 1: Users 
   ms-users:
     build: ./ms-users
     container_name: utec_ms_users
@@ -23,14 +19,8 @@ services:
       PORT:               3001
       NODE_ENV:           production
       CORS_ORIGIN:        "*"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
-  # ── MICROSERVICIO 2: Academic (Java/Spring Boot + MySQL en MV3) ─
+  # ── MICROSERVICIO 2: Academic 
   ms-academic:
     build: ./ms-academic
     container_name: utec_ms_academic
@@ -47,15 +37,10 @@ services:
       SPRING_PROFILES_ACTIVE: prod
     depends_on:
       ms-users:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
+        condition: service_started
 
-  # ── MICROSERVICIO 3: Reviews+Repos (Python/FastAPI + MongoDB en MV3)
+
+  # ── MICROSERVICIO 3: Reviews+Repos 
   ms-reviews:
     build: ./ms-reviews
     container_name: utec_ms_reviews
@@ -69,17 +54,12 @@ services:
       MS2_URL:   http://ms-academic:3002
     depends_on:
       ms-users:
-        condition: service_healthy
+        condition: service_started
       ms-academic:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+        condition: service_started
 
-  # ── MICROSERVICIO 4: Content/Orquestador (Python/FastAPI, sin BD) ─
+
+  # ── MICROSERVICIO 4: Content/Orquestador 
   ms-content:
     build: ./ms-content
     container_name: utec_ms_content
@@ -93,19 +73,14 @@ services:
       MS3_URL: http://ms-reviews:3003
     depends_on:
       ms-users:
-        condition: service_healthy
+        condition: service_started
       ms-academic:
-        condition: service_healthy
+        condition: service_started
       ms-reviews:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
+        condition: service_started
 
-  # ── MICROSERVICIO 5: Analytics (Python/FastAPI + AWS Athena) ─────
+
+  # ── MICROSERVICIO 5: Analytics 
   ms-analytics:
     build: ./ms-analytics
     container_name: utec_ms_analytics
@@ -125,19 +100,14 @@ services:
       ATHENA_OUTPUT:         ${ATHENA_OUTPUT:-s3://utecrate-analytics-data/athena-results/}
     depends_on:
       ms-users:
-        condition: service_healthy
+        condition: service_started
       ms-academic:
-        condition: service_healthy
+        condition: service_started
       ms-reviews:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
+        condition: service_started
 
-  # ── NGINX: load balancer interno ─────────────────────────────────
+
+  # ── NGINX: balanceador interno
   nginx:
     image: nginx:alpine
     container_name: utec_nginx
